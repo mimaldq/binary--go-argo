@@ -1,4 +1,4 @@
-name: Build Go Binary
+name: Build Go Static Binary
 
 on:
   push:
@@ -11,16 +11,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
       matrix:
-        goos: [linux, windows, darwin]
-        goarch: [amd64, arm64]
-        exclude:
-          # 排除不常见的组合（可选）
-          - goos: windows
-            goarch: arm64
-          - goos: darwin
-            goarch: arm64
+        arch: [amd64, arm64]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,21 +22,13 @@ jobs:
         with:
           go-version: '1.21'
 
-      - name: Build
-        env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
+      - name: Build static binary for linux/${{ matrix.arch }}
         run: |
-          output_name="myapp-${{ matrix.goos }}-${{ matrix.goarch }}"
-          if [ "${{ matrix.goos }}" = "windows" ]; then
-            output_name="$output_name.exe"
-          fi
-          go build -ldflags="-s -w" -o "$output_name"
-          # 可选：压缩产物
-          tar -czf "$output_name.tar.gz" "$output_name"
+          CGO_ENABLED=0 GOOS=linux GOARCH=${{ matrix.arch }} \
+            go build -ldflags="-s -w" -o myapp-linux-${{ matrix.arch }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: myapp-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: myapp-*
+          name: myapp-linux-${{ matrix.arch }}
+          path: myapp-linux-${{ matrix.arch }}
