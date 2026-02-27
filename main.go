@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/rand"
+	"embed" // 新增：用于嵌入静态文件
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -23,6 +24,9 @@ import (
 	"syscall"
 	"time"
 )
+
+//go:embed index.html
+var embeddedFiles embed.FS
 
 // Config 配置结构体
 type Config struct {
@@ -55,7 +59,7 @@ var (
 	subscription   string
 	monitorProcess *os.Process
 	proxyServer    *http.Server
-	
+
 	// 统计信息
 	wsConnections int64
 	totalBytes    int64
@@ -135,7 +139,7 @@ func initConfig() {
 func tunePerformance() {
 	// 设置GOMAXPROCS为CPU核心数
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	
+
 	log.Printf("性能调优: GOMAXPROCS=%d, CPU核心数=%d", runtime.GOMAXPROCS(0), runtime.NumCPU())
 }
 
@@ -443,21 +447,21 @@ ingress:
 func startProxyServer() {
 	// 创建HTTP服务器
 	mux := http.NewServeMux()
-	
+
 	// 添加监控端点
 	mux.HandleFunc("/stats", handleStats)
-	
+
 	// 处理所有请求
 	mux.HandleFunc("/", handleProxyRequest)
-	
+
 	proxyServer = &http.Server{
 		Addr:    ":" + config.ArgoPort,
 		Handler: mux,
 	}
-	
+
 	// 移除WebSocket相关日志，只保留基本服务器启动信息
 	log.Printf("代理服务器启动在端口: %s", config.ArgoPort)
-	
+
 	if err := proxyServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("代理服务器启动失败: %v", err)
 	}
@@ -466,31 +470,31 @@ func startProxyServer() {
 // 处理代理请求
 func handleProxyRequest(w http.ResponseWriter, r *http.Request) {
 	urlPath := r.URL.Path
-	
+
 	// 判断是否是WebSocket升级请求
 	isWebSocket := strings.ToLower(r.Header.Get("Upgrade")) == "websocket"
-	
+
 	// 确定目标地址
 	var targetHost, targetPort string
 	targetHost = "localhost"
-	
-	if strings.HasPrefix(urlPath, "/vless-argo") || 
-		strings.HasPrefix(urlPath, "/vmess-argo") || 
+
+	if strings.HasPrefix(urlPath, "/vless-argo") ||
+		strings.HasPrefix(urlPath, "/vmess-argo") ||
 		strings.HasPrefix(urlPath, "/trojan-argo") ||
-		urlPath == "/vless" || 
-		urlPath == "/vmess" || 
+		urlPath == "/vless" ||
+		urlPath == "/vmess" ||
 		urlPath == "/trojan" {
 		targetPort = "3001" // Xray端口
 	} else {
 		targetPort = config.Port // HTTP服务器端口
 	}
-	
+
 	// WebSocket请求使用TCP级代理
 	if isWebSocket {
 		handleWebSocketProxy(w, r, targetHost, targetPort)
 		return
 	}
-	
+
 	// 普通HTTP请求使用标准反向代理
 	handleHTTPProxy(w, r, targetHost, targetPort)
 }
@@ -502,13 +506,13 @@ func handleWebSocketProxy(w http.ResponseWriter, r *http.Request, targetHost, ta
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	if strings.ToLower(r.Header.Get("Upgrade")) != "websocket" ||
 		strings.ToLower(r.Header.Get("Connection")) != "upgrade" {
 		http.Error(w, "Not a WebSocket upgrade request", http.StatusBadRequest)
 		return
 	}
-	
+
 	// 连接后端服务
 	backendAddr := net.JoinHostPort(targetHost, targetPort)
 	backendConn, err := net.Dial("tcp", backendAddr)
@@ -519,17 +523,17 @@ func handleWebSocketProxy(w http.ResponseWriter, r *http.Request, targetHost, ta
 		return
 	}
 	defer backendConn.Close()
-	
+
 	// 设置连接超时
 	backendConn.SetDeadline(time.Now().Add(30 * time.Second))
-	
+
 	// 劫持客户端连接
 	hijacker, ok := w.(http.Hijacker)
 	if !ok {
 		http.Error(w, "不支持连接劫持", http.StatusInternalServerError)
 		return
 	}
-	
+
 	clientConn, clientBuf, err := hijacker.Hijack()
 	if err != nil {
 		log.Printf("劫持连接失败: %v", err)
@@ -537,7 +541,7 @@ func handleWebSocketProxy(w http.ResponseWriter, r *http.Request, targetHost, ta
 		return
 	}
 	defer clientConn.Close()
-	
+
 	// 如果有缓冲数据，先发送到后端
 	if clientBuf != nil && clientBuf.Reader.Buffered() > 0 {
 		buffered, _ := io.ReadAll(clientBuf.Reader)
@@ -545,26 +549,26 @@ func handleWebSocketProxy(w http.ResponseWriter, r *http.Request, targetHost, ta
 			return // 移除错误日志，静默处理
 		}
 	}
-	
+
 	// 转发原始HTTP请求到后端
 	if err := r.Write(backendConn); err != nil {
 		return // 移除错误日志，静默处理
 	}
-	
+
 	// 更新统计信息
 	atomic.AddInt64(&wsConnections, 1)
 	defer atomic.AddInt64(&wsConnections, -1)
-	
+
 	// 设置双向转发的超时
 	clientConn.SetDeadline(time.Time{}) // 不超时
 	backendConn.SetDeadline(time.Time{})
-	
+
 	// 错误通道
 	errCh := make(chan error, 2)
-	
+
 	// 启动双向数据转发
 	var bytesForwarded int64
-	
+
 	// 客户端 -> 后端
 	go func() {
 		n, err := io.Copy(backendConn, clientConn)
@@ -572,7 +576,7 @@ func handleWebSocketProxy(w http.ResponseWriter, r *http.Request, targetHost, ta
 		atomic.AddInt64(&totalBytes, n)
 		errCh <- err
 	}()
-	
+
 	// 后端 -> 客户端
 	go func() {
 		n, err := io.Copy(clientConn, backendConn)
@@ -580,7 +584,7 @@ func handleWebSocketProxy(w http.ResponseWriter, r *http.Request, targetHost, ta
 		atomic.AddInt64(&totalBytes, n)
 		errCh <- err
 	}()
-	
+
 	// 等待任意一端出错或完成
 	select {
 	case err := <-errCh:
@@ -592,7 +596,7 @@ func handleWebSocketProxy(w http.ResponseWriter, r *http.Request, targetHost, ta
 	case <-time.After(24 * time.Hour):
 		// 长时间运行，不输出日志
 	}
-	
+
 	// 移除连接关闭的日志
 }
 
@@ -604,7 +608,7 @@ func handleHTTPProxy(w http.ResponseWriter, r *http.Request, targetHost, targetP
 			req.URL.Scheme = "http"
 			req.URL.Host = fmt.Sprintf("%s:%s", targetHost, targetPort)
 			req.Host = req.URL.Host
-			
+
 			// 保留原始请求头
 			if _, ok := req.Header["User-Agent"]; !ok {
 				req.Header.Set("User-Agent", "Argo-Tunnel-Proxy/1.0")
@@ -615,7 +619,7 @@ func handleHTTPProxy(w http.ResponseWriter, r *http.Request, targetHost, targetP
 			http.Error(w, "代理错误", http.StatusInternalServerError)
 		},
 	}
-	
+
 	proxy.ServeHTTP(w, r)
 }
 
@@ -624,7 +628,7 @@ func handleStats(w http.ResponseWriter, r *http.Request) {
 	// 使用runtime.ReadMemStats获取内存统计信息
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
-	
+
 	stats := map[string]interface{}{
 		"ws_connections": atomic.LoadInt64(&wsConnections),
 		"total_bytes":    atomic.LoadInt64(&totalBytes),
@@ -636,7 +640,7 @@ func handleStats(w http.ResponseWriter, r *http.Request) {
 			"num_gc":      memStats.NumGC, // 使用memStats.NumGC而不是runtime.NumGC
 		},
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(stats)
 }
@@ -657,7 +661,7 @@ func formatBytes(bytes int64) string {
 func startHTTPServer() {
 	// 创建HTTP服务器
 	mux := http.NewServeMux()
-	
+
 	// 订阅路径处理
 	mux.HandleFunc("/"+config.SubPath, func(w http.ResponseWriter, r *http.Request) {
 		mu.RLock()
@@ -666,34 +670,27 @@ func startHTTPServer() {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.Write([]byte(encoded))
 	})
-	
-	// 根路径处理
+
+	// 根路径处理 - 从嵌入文件系统读取 index.html
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// 检查index.html文件
-		indexPaths := []string{
-			"index.html",
-			"/app/index.html",
-			"./index.html",
+		data, err := embeddedFiles.ReadFile("index.html")
+		if err != nil {
+			// 如果嵌入文件读取失败（理论上不会），则回退到简单消息
+			w.Write([]byte("Hello world!"))
+			return
 		}
-		
-		for _, indexPath := range indexPaths {
-			if _, err := os.Stat(indexPath); err == nil {
-				http.ServeFile(w, r, indexPath)
-				return
-			}
-		}
-		
-		w.Write([]byte("Hello world!"))
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(data)
 	})
-	
+
 	// 启动内部HTTP服务器
 	log.Printf("HTTP服务运行在内部端口: %s", config.Port)
-	
+
 	server := &http.Server{
 		Addr:    ":" + config.Port,
 		Handler: mux,
 	}
-	
+
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("HTTP服务器启动失败: %v", err)
 	}
@@ -701,36 +698,36 @@ func startHTTPServer() {
 
 func startMainProcess() {
 	log.Println("开始服务器初始化...")
-	
+
 	// 下载文件并运行
 	downloadFilesAndRun()
-	
+
 	// 等待隧道启动
 	log.Println("等待隧道启动...")
 	time.Sleep(5 * time.Second)
-	
+
 	// 提取域名
 	extractDomains()
-	
+
 	// 自动访问任务
 	addVisitTask()
-	
+
 	// 启动监控脚本
 	go startMonitorScript()
-	
+
 	// 清理文件
 	go func() {
 		time.Sleep(90 * time.Second)
 		cleanFiles()
 	}()
-	
+
 	log.Println("服务器初始化完成")
 }
 
 func downloadFilesAndRun() {
 	// 获取系统架构
 	arch := getArchitecture()
-	
+
 	// 确定下载URL
 	var baseURL string
 	if arch == "arm" {
@@ -738,14 +735,14 @@ func downloadFilesAndRun() {
 	} else {
 		baseURL = "https://amd64.ssss.nyc.mn/"
 	}
-	
+
 	// 需要下载的文件列表
 	var fileList []struct {
 		name     string
 		filePath string
 		url      string
 	}
-	
+
 	// 添加基本文件
 	fileList = append(fileList, struct {
 		name     string
@@ -764,7 +761,7 @@ func downloadFilesAndRun() {
 		filePath: files["bot"],
 		url:      baseURL + "bot",
 	})
-	
+
 	// 如果需要哪吒监控
 	if config.NezhaServer != "" && config.NezhaKey != "" {
 		if config.NezhaPort != "" {
@@ -791,7 +788,7 @@ func downloadFilesAndRun() {
 			}}, fileList...)
 		}
 	}
-	
+
 	// 下载所有文件
 	var wg sync.WaitGroup
 	for _, file := range fileList {
@@ -808,13 +805,13 @@ func downloadFilesAndRun() {
 		}(file.name, file.filePath, file.url)
 	}
 	wg.Wait()
-	
+
 	// 运行哪吒监控
 	runNezha()
-	
+
 	// 运行Xray
 	runXray()
-	
+
 	// 运行Cloudflared
 	runCloudflared()
 }
@@ -834,19 +831,19 @@ func downloadFile(filepath, url string) error {
 		return err
 	}
 	defer out.Close()
-	
+
 	// 下载文件
 	resp, err := http.Get(url)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-	
+
 	// 检查响应状态
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("下载失败: %s", resp.Status)
 	}
-	
+
 	// 写入文件
 	_, err = io.Copy(out, resp.Body)
 	return err
@@ -857,14 +854,14 @@ func runNezha() {
 		log.Println("哪吒监控变量为空，跳过运行")
 		return
 	}
-	
+
 	if config.NezhaPort == "" {
 		// v1版本
 		port := "443"
 		if idx := strings.LastIndex(config.NezhaServer, ":"); idx != -1 {
 			port = config.NezhaServer[idx+1:]
 		}
-		
+
 		// 检查是否为TLS端口
 		tlsPorts := map[string]bool{
 			"443":  true,
@@ -874,12 +871,12 @@ func runNezha() {
 			"2083": true,
 			"2053": true,
 		}
-		
+
 		nezhatls := "false"
 		if tlsPorts[port] {
 			nezhatls = "true"
 		}
-		
+
 		// 生成配置文件
 		yamlContent := fmt.Sprintf(`client_secret: %s
 debug: false
@@ -900,36 +897,36 @@ tls: %s
 use_gitee_to_upgrade: false
 use_ipv6_country_code: false
 uuid: %s`, config.NezhaKey, config.NezhaServer, nezhatls, config.UUID)
-		
+
 		if err := os.WriteFile(files["nezhaConfig"], []byte(yamlContent), 0644); err != nil {
 			log.Printf("生成哪吒配置失败: %v", err)
 			return
 		}
-		
+
 		// 运行哪吒
 		cmd := exec.Command(files["php"], "-c", files["nezhaConfig"])
 		cmd.Stdout = nil
 		cmd.Stderr = nil
-		
+
 		if err := cmd.Start(); err != nil {
 			log.Printf("运行哪吒失败: %v", err)
 			return
 		}
-		
+
 		// 分离进程
 		if err := cmd.Process.Release(); err != nil {
 			log.Printf("分离哪吒进程失败: %v", err)
 		}
-		
+
 		log.Printf("%s 运行中", filepath.Base(files["php"]))
 		time.Sleep(1 * time.Second)
-		
+
 	} else {
 		// v0版本
 		var args []string
 		args = append(args, "-s", config.NezhaServer+":"+config.NezhaPort)
 		args = append(args, "-p", config.NezhaKey)
-		
+
 		// 检查是否为TLS端口
 		tlsPorts := map[string]bool{
 			"443":  true,
@@ -939,27 +936,27 @@ uuid: %s`, config.NezhaKey, config.NezhaServer, nezhatls, config.UUID)
 			"2083": true,
 			"2053": true,
 		}
-		
+
 		if tlsPorts[config.NezhaPort] {
 			args = append(args, "--tls")
 		}
-		
+
 		args = append(args, "--disable-auto-update", "--report-delay", "4", "--skip-conn", "--skip-procs")
-		
+
 		cmd := exec.Command(files["npm"], args...)
 		cmd.Stdout = nil
 		cmd.Stderr = nil
-		
+
 		if err := cmd.Start(); err != nil {
 			log.Printf("运行哪吒失败: %v", err)
 			return
 		}
-		
+
 		// 分离进程
 		if err := cmd.Process.Release(); err != nil {
 			log.Printf("分离哪吒进程失败: %v", err)
 		}
-		
+
 		log.Printf("%s 运行中", filepath.Base(files["npm"]))
 		time.Sleep(1 * time.Second)
 	}
@@ -969,17 +966,17 @@ func runXray() {
 	cmd := exec.Command(files["web"], "-c", files["config"])
 	cmd.Stdout = nil
 	cmd.Stderr = nil
-	
+
 	if err := cmd.Start(); err != nil {
 		log.Printf("运行Xray失败: %v", err)
 		return
 	}
-	
+
 	// 分离进程
 	if err := cmd.Process.Release(); err != nil {
 		log.Printf("分离Xray进程失败: %v", err)
 	}
-	
+
 	log.Printf("%s 运行中", filepath.Base(files["web"]))
 	time.Sleep(1 * time.Second)
 }
@@ -989,10 +986,10 @@ func runCloudflared() {
 		log.Println("cloudflared文件不存在")
 		return
 	}
-	
+
 	var args []string
 	args = append(args, "tunnel", "--edge-ip-version", "auto", "--no-autoupdate", "--protocol", "http2")
-	
+
 	if config.ArgoAuth != "" && config.ArgoDomain != "" {
 		// 检查是否为token格式
 		if len(config.ArgoAuth) >= 120 && len(config.ArgoAuth) <= 250 {
@@ -1014,34 +1011,34 @@ func runCloudflared() {
 		args = append(args, "--logfile", files["bootLog"], "--loglevel", "info",
 			"--url", "http://localhost:"+config.ArgoPort)
 	}
-	
+
 	cmd := exec.Command(files["bot"], args...)
 	cmd.Stdout = nil
 	cmd.Stderr = nil
-	
+
 	if err := cmd.Start(); err != nil {
 		log.Printf("运行cloudflared失败: %v", err)
 		return
 	}
-	
+
 	// 分离进程
 	if err := cmd.Process.Release(); err != nil {
 		log.Printf("分离cloudflared进程失败: %v", err)
 	}
-	
+
 	log.Printf("%s 运行中", filepath.Base(files["bot"]))
 }
 
 func extractDomains() {
 	var argoDomain string
-	
+
 	if config.ArgoAuth != "" && config.ArgoDomain != "" {
 		argoDomain = config.ArgoDomain
 		log.Printf("使用固定域名: %s", argoDomain)
 		generateLinks(argoDomain)
 		return
 	}
-	
+
 	// 尝试从日志读取域名
 	data, err := os.ReadFile(files["bootLog"])
 	if err != nil {
@@ -1049,7 +1046,7 @@ func extractDomains() {
 		restartCloudflared()
 		return
 	}
-	
+
 	lines := strings.Split(string(data), "\n")
 	for _, line := range lines {
 		if strings.Contains(line, "trycloudflare.com") {
@@ -1072,7 +1069,7 @@ func extractDomains() {
 			}
 		}
 	}
-	
+
 	log.Println("未找到域名，重新运行cloudflared")
 	restartCloudflared()
 }
@@ -1080,33 +1077,33 @@ func extractDomains() {
 func restartCloudflared() {
 	// 停止现有进程
 	exec.Command("pkill", "-f", filepath.Base(files["bot"])).Run()
-	
+
 	// 删除日志文件
 	os.Remove(files["bootLog"])
-	
+
 	time.Sleep(3 * time.Second)
-	
+
 	// 重新启动
 	args := []string{
 		"tunnel", "--edge-ip-version", "auto", "--no-autoupdate", "--protocol", "http2",
 		"--logfile", files["bootLog"], "--loglevel", "info",
 		"--url", "http://localhost:" + config.ArgoPort,
 	}
-	
+
 	cmd := exec.Command(files["bot"], args...)
 	cmd.Stdout = nil
 	cmd.Stderr = nil
-	
+
 	if err := cmd.Start(); err != nil {
 		log.Printf("重启cloudflared失败: %v", err)
 		return
 	}
-	
+
 	// 分离进程
 	if err := cmd.Process.Release(); err != nil {
 		log.Printf("分离cloudflared进程失败: %v", err)
 	}
-	
+
 	time.Sleep(5 * time.Second)
 	extractDomains()
 }
@@ -1120,7 +1117,7 @@ func generateLinks(domain string) {
 	} else {
 		nodeName = isp
 	}
-	
+
 	// 生成VMESS配置
 	vmessConfig := map[string]interface{}{
 		"v":    "2",
@@ -1139,10 +1136,10 @@ func generateLinks(domain string) {
 		"alpn": "",
 		"fp":   "firefox",
 	}
-	
+
 	vmessJSON, _ := json.Marshal(vmessConfig)
 	vmessBase64 := base64.StdEncoding.EncodeToString(vmessJSON)
-	
+
 	// 生成订阅内容
 	subTxt := fmt.Sprintf(`
 vless://%s@%s:%s?encryption=none&security=tls&sni=%s&fp=firefox&type=ws&host=%s&path=%%2Fvless-argo%%3Fed%%3D2560#%s
@@ -1153,12 +1150,12 @@ trojan://%s@%s:%s?security=tls&sni=%s&fp=firefox&type=ws&host=%s&path=%%2Ftrojan
 `, config.UUID, config.CFIP, config.CFPort, domain, domain, nodeName,
 		vmessBase64,
 		config.UUID, config.CFIP, config.CFPort, domain, domain, nodeName)
-	
+
 	// 更新订阅缓存
 	mu.Lock()
 	subscription = subTxt
 	mu.Unlock()
-	
+
 	// 保存到文件
 	encoded := base64.StdEncoding.EncodeToString([]byte(subTxt))
 	if err := os.WriteFile(files["sub"], []byte(encoded), 0644); err != nil {
@@ -1166,10 +1163,10 @@ trojan://%s@%s:%s?security=tls&sni=%s&fp=firefox&type=ws&host=%s&path=%%2Ftrojan
 	} else {
 		log.Printf("订阅文件已保存: %s", files["sub"])
 	}
-	
+
 	// 打印base64内容
 	log.Printf("订阅base64内容:\n%s", encoded)
-	
+
 	// 上传节点
 	uploadNodes()
 }
@@ -1228,14 +1225,14 @@ func uploadNodes() {
 	if config.UploadURL == "" {
 		return
 	}
-	
+
 	if config.ProjectURL != "" {
 		// 上传订阅
 		subscriptionUrl := config.ProjectURL + "/" + config.SubPath
 		jsonData := map[string][]string{
 			"subscription": {subscriptionUrl},
 		}
-		
+
 		data, _ := json.Marshal(jsonData)
 		req, err := http.NewRequest("POST", config.UploadURL+"/api/add-subscriptions",
 			bytes.NewBuffer(data))
@@ -1244,16 +1241,16 @@ func uploadNodes() {
 			return
 		}
 		req.Header.Set("Content-Type", "application/json")
-		
+
 		client := &http.Client{Timeout: 10 * time.Second}
 		resp, err := client.Do(req)
-		
+
 		if err != nil {
 			log.Printf("订阅上传失败: %v", err)
 			return
 		}
 		defer resp.Body.Close()
-		
+
 		if resp.StatusCode == 200 {
 			log.Println("订阅上传成功")
 		} else if resp.StatusCode == 400 {
@@ -1266,12 +1263,12 @@ func uploadNodes() {
 		if _, err := os.Stat(files["list"]); os.IsNotExist(err) {
 			return
 		}
-		
+
 		data, err := os.ReadFile(files["list"])
 		if err != nil {
 			return
 		}
-		
+
 		lines := strings.Split(string(data), "\n")
 		var nodes []string
 		for _, line := range lines {
@@ -1283,11 +1280,11 @@ func uploadNodes() {
 				nodes = append(nodes, line)
 			}
 		}
-		
+
 		if len(nodes) == 0 {
 			return
 		}
-		
+
 		jsonData, _ := json.Marshal(map[string][]string{"nodes": nodes})
 		req, err := http.NewRequest("POST", config.UploadURL+"/api/add-nodes",
 			bytes.NewBuffer(jsonData))
@@ -1295,10 +1292,10 @@ func uploadNodes() {
 			return
 		}
 		req.Header.Set("Content-Type", "application/json")
-		
+
 		client := &http.Client{Timeout: 10 * time.Second}
 		_, err = client.Do(req)
-		
+
 		if err != nil {
 			log.Printf("节点上传失败: %v", err)
 		} else {
@@ -1312,10 +1309,10 @@ func addVisitTask() {
 		log.Println("跳过自动访问任务")
 		return
 	}
-	
+
 	jsonData := map[string]string{"url": config.ProjectURL}
 	data, _ := json.Marshal(jsonData)
-	
+
 	req, err := http.NewRequest("POST", "https://oooo.serv00.net/add-url",
 		bytes.NewBuffer(data))
 	if err != nil {
@@ -1323,16 +1320,16 @@ func addVisitTask() {
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
-	
+
 	if err != nil {
 		log.Printf("添加自动访问任务失败: %v", err)
 		return
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode == 200 {
 		log.Println("自动访问任务添加成功")
 	} else {
@@ -1346,58 +1343,58 @@ func startMonitorScript() {
 		log.Println("监控环境变量不完整，跳过监控脚本启动")
 		return
 	}
-	
+
 	// 等待一段时间，确保其他服务已启动
 	time.Sleep(10 * time.Second)
-	
+
 	log.Println("开始下载并运行监控脚本...")
-	
+
 	// 下载监控脚本
 	if err := downloadMonitorScript(); err != nil {
 		log.Printf("下载监控脚本失败: %v", err)
 		return
 	}
-	
+
 	// 设置执行权限
 	if err := os.Chmod(files["monitor"], 0755); err != nil {
 		log.Printf("设置监控脚本执行权限失败: %v", err)
 		return
 	}
-	
+
 	// 运行监控脚本
 	go runMonitorScript()
 }
 
 func downloadMonitorScript() error {
 	monitorURL := "https://raw.githubusercontent.com/mimaldq/cf-vps-monitor/main/cf-vps-monitor.sh"
-	
+
 	log.Printf("从 %s 下载监控脚本", monitorURL)
-	
+
 	// 创建文件
 	out, err := os.Create(files["monitor"])
 	if err != nil {
 		return err
 	}
 	defer out.Close()
-	
+
 	// 下载文件
 	resp, err := http.Get(monitorURL)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-	
+
 	// 检查响应状态
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("下载监控脚本失败: %s", resp.Status)
 	}
-	
+
 	// 写入文件
 	_, err = io.Copy(out, resp.Body)
 	if err != nil {
 		return err
 	}
-	
+
 	log.Println("监控脚本下载完成")
 	return nil
 }
@@ -1457,20 +1454,20 @@ func cleanFiles() {
 		files["bot"],
 		files["monitor"],
 	}
-	
+
 	if config.NezhaPort != "" {
 		filesToDelete = append(filesToDelete, files["npm"])
 	} else if config.NezhaServer != "" && config.NezhaKey != "" {
 		filesToDelete = append(filesToDelete, files["php"])
 	}
-	
+
 	// 删除文件
 	for _, file := range filesToDelete {
 		if err := os.Remove(file); err != nil && !os.IsNotExist(err) {
 			log.Printf("删除文件失败 %s: %v", file, err)
 		}
 	}
-	
+
 	log.Println("应用正在运行")
 	log.Println("感谢使用此脚本，享受吧！")
 }
@@ -1478,22 +1475,22 @@ func cleanFiles() {
 func setupSignalHandler() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	
+
 	go func() {
 		<-c
 		log.Println("收到关闭信号，正在清理...")
-		
+
 		// 停止监控进程
 		if monitorProcess != nil {
 			log.Println("停止监控脚本...")
 			monitorProcess.Kill()
 		}
-		
+
 		// 关闭代理服务器
 		if proxyServer != nil {
 			proxyServer.Close()
 		}
-		
+
 		log.Println("程序退出")
 		os.Exit(0)
 	}()
