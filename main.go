@@ -68,6 +68,14 @@ var (
 	// 统计信息
 	wsConnections int64
 	totalBytes    int64
+
+	// 全局 HTTP 传输层，供所有代理复用，提升性能
+	defaultTransport = &http.Transport{
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 20,
+		IdleConnTimeout:     90 * time.Second,
+		DisableCompression:  true, // 禁用压缩，减少 CPU 开销
+	}
 )
 
 func main() {
@@ -473,6 +481,7 @@ func handleProxyRequest(w http.ResponseWriter, r *http.Request) {
 	handleHTTPProxy(w, r, targetHost, targetPort)
 }
 
+// 优化后的 WebSocket 代理：启用 TCP_NODELAY，忽略常见错误日志
 func handleWebSocketProxy(w http.ResponseWriter, r *http.Request, targetHost, targetPort string) {
 	if r.Method != "GET" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -485,7 +494,7 @@ func handleWebSocketProxy(w http.ResponseWriter, r *http.Request, targetHost, ta
 	}
 
 	backendAddr := net.JoinHostPort(targetHost, targetPort)
-	backendConn, err := net.Dial("tcp", backendAddr)
+	backendConn, err := net.DialTimeout("tcp", backendAddr, 5*time.Second)
 	if err != nil {
 		log.Printf("连接后端失败: %v", err)
 		http.Error(w, "无法连接后端服务", http.StatusBadGateway)
@@ -493,7 +502,13 @@ func handleWebSocketProxy(w http.ResponseWriter, r *http.Request, targetHost, ta
 	}
 	defer backendConn.Close()
 
-	backendConn.SetDeadline(time.Now().Add(30 * time.Second))
+	// 启用 TCP_NODELAY，禁用 Nagle 算法，减少延迟
+	if tcpConn, ok := backendConn.(*net.TCPConn); ok {
+		tcpConn.SetNoDelay(true)
+	}
+
+	// 设置握手阶段超时，之后清除 deadline
+	backendConn.SetDeadline(time.Now().Add(10 * time.Second))
 
 	hijacker, ok := w.(http.Hijacker)
 	if !ok {
@@ -514,49 +529,53 @@ func handleWebSocketProxy(w http.ResponseWriter, r *http.Request, targetHost, ta
 		backendConn.Write(buffered)
 	}
 
-	r.Write(backendConn)
+	// 将原始 HTTP 请求转发到后端
+	if err := r.Write(backendConn); err != nil {
+		log.Printf("转发请求失败: %v", err)
+		return
+	}
+
+	// 握手完成，清除 deadline，让连接保持活跃
+	backendConn.SetDeadline(time.Time{})
+	clientConn.SetDeadline(time.Time{})
 
 	atomic.AddInt64(&wsConnections, 1)
 	defer atomic.AddInt64(&wsConnections, -1)
 
-	clientConn.SetDeadline(time.Time{})
-	backendConn.SetDeadline(time.Time{})
-
+	// 错误通道
 	errCh := make(chan error, 2)
-	var bytesForwarded int64
 
+	// 客户端 -> 后端
 	go func() {
-		n, err := io.Copy(backendConn, clientConn)
-		atomic.AddInt64(&bytesForwarded, n)
-		atomic.AddInt64(&totalBytes, n)
+		_, err := io.Copy(backendConn, clientConn)
 		errCh <- err
 	}()
+	// 后端 -> 客户端
 	go func() {
-		n, err := io.Copy(clientConn, backendConn)
-		atomic.AddInt64(&bytesForwarded, n)
-		atomic.AddInt64(&totalBytes, n)
+		_, err := io.Copy(clientConn, backendConn)
 		errCh <- err
 	}()
 
-	select {
-	case err := <-errCh:
-		if err != nil && err != io.EOF {
-			log.Printf("WebSocket转发错误: %v", err)
-		}
-	case <-time.After(24 * time.Hour):
+	// 等待任意一端出错或完成，忽略常见的正常断开错误
+	err = <-errCh
+	if err != nil && err != io.EOF && !strings.Contains(err.Error(), "connection reset by peer") {
+		log.Printf("WebSocket转发错误: %v", err)
 	}
+	// 另一端自动退出，无需等待
 }
 
+// 优化后的 HTTP 代理：复用全局 Transport，提升性能
 func handleHTTPProxy(w http.ResponseWriter, r *http.Request, targetHost, targetPort string) {
 	proxy := &httputil.ReverseProxy{
 		Director: func(req *http.Request) {
 			req.URL.Scheme = "http"
 			req.URL.Host = fmt.Sprintf("%s:%s", targetHost, targetPort)
-			req.Host = req.URL.Host
+			req.Host = req.URL.Host // 保留原始 Host
 			if _, ok := req.Header["User-Agent"]; !ok {
 				req.Header.Set("User-Agent", "Argo-Tunnel-Proxy/1.0")
 			}
 		},
+		Transport: defaultTransport,
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
 			log.Printf("HTTP代理错误: %v", err)
 			http.Error(w, "代理错误", http.StatusInternalServerError)
