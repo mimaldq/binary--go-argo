@@ -1,790 +1,314 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Health & Wellness - Your Path to Better Living</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        :root {
-            --primary: #2e7d32;
-            --secondary: #4caf50;
-            --accent: #8bc34a;
-            --light: #e8f5e9;
-            --dark: #1b5e20;
-            --text: #333333;
-            --white: #ffffff;
-            --blue: #2196f3;
-            --orange: #ff9800;
-        }
-
-        body {
-            background-color: var(--light);
-            color: var(--text);
-            line-height: 1.6;
-        }
-
-        header {
-            background: linear-gradient(to right, var(--primary), var(--secondary));
-            color: var(--white);
-            padding: 1rem 0;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .container {
-            width: 90%;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .nav-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 1.8rem;
-            font-weight: 700;
-        }
-
-        .logo i {
-            font-size: 2rem;
-        }
-
-        nav ul {
-            display: flex;
-            list-style: none;
-        }
-
-        nav ul li {
-            margin-left: 2rem;
-        }
-
-        nav ul li a {
-            color: var(--white);
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            padding: 0.5rem 0;
-            position: relative;
-        }
-
-        nav ul li a:hover {
-            color: var(--accent);
-        }
-
-        nav ul li a::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 0;
-            height: 2px;
-            background-color: var(--accent);
-            transition: width 0.3s ease;
-        }
-
-        nav ul li a:hover::after {
-            width: 100%;
-        }
-
-        .hero {
-            background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.4)), url('https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1932&q=80');
-            background-size: cover;
-            background-position: center;
-            height: 80vh;
-            display: flex;
-            align-items: center;
-            text-align: center;
-            color: var(--white);
-        }
-
-        .hero-content {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .hero h1 {
-            font-size: 3.5rem;
-            margin-bottom: 1rem;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-        }
-
-        .hero p {
-            font-size: 1.3rem;
-            margin-bottom: 2rem;
-        }
-
-        .btn {
-            display: inline-block;
-            background-color: var(--accent);
-            color: var(--white);
-            padding: 0.8rem 2rem;
-            border-radius: 50px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            border: none;
-            cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .btn:hover {
-            background-color: var(--primary);
-            transform: translateY(-3px);
-            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
-        }
-
-        section {
-            padding: 5rem 0;
-        }
-
-        .section-title {
-            text-align: center;
-            margin-bottom: 3rem;
-        }
-
-        .section-title h2 {
-            font-size: 2.5rem;
-            color: var(--primary);
-            margin-bottom: 1rem;
-            position: relative;
-            display: inline-block;
-        }
-
-        .section-title h2::after {
-            content: '';
-            position: absolute;
-            bottom: -10px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 80px;
-            height: 4px;
-            background-color: var(--accent);
-            border-radius: 2px;
-        }
-
-        .section-title p {
-            color: var(--text);
-            max-width: 700px;
-            margin: 0 auto;
-        }
-
-        .about-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 3rem;
-            align-items: center;
-        }
-
-        .about-img {
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-        }
-
-        .about-img img {
-            width: 100%;
-            height: auto;
-            display: block;
-            transition: transform 0.5s ease;
-        }
-
-        .about-img:hover img {
-            transform: scale(1.05);
-        }
-
-        .about-text h3 {
-            font-size: 1.8rem;
-            margin-bottom: 1.5rem;
-            color: var(--dark);
-        }
-
-        .about-text p {
-            margin-bottom: 1.5rem;
-        }
-
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 2rem;
-            margin-top: 3rem;
-        }
-
-        .stat-item {
-            text-align: center;
-            padding: 2rem 1rem;
-            background-color: var(--white);
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-            transition: transform 0.3s ease;
-        }
-
-        .stat-item:hover {
-            transform: translateY(-10px);
-        }
-
-        .stat-item i {
-            font-size: 2.5rem;
-            color: var(--primary);
-            margin-bottom: 1rem;
-        }
-
-        .stat-item h3 {
-            font-size: 2.5rem;
-            color: var(--dark);
-            margin-bottom: 0.5rem;
-        }
-
-        .stat-item p {
-            color: var(--text);
-        }
-
-        .services {
-            background-color: var(--white);
-        }
-
-        .services-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 2rem;
-        }
-
-        .service-card {
-            background-color: var(--light);
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-            transition: transform 0.3s ease;
-        }
-
-        .service-card:hover {
-            transform: translateY(-10px);
-        }
-
-        .service-img {
-            height: 200px;
-            overflow: hidden;
-        }
-
-        .service-img img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.5s ease;
-        }
-
-        .service-card:hover .service-img img {
-            transform: scale(1.1);
-        }
-
-        .service-content {
-            padding: 1.5rem;
-        }
-
-        .service-content h3 {
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            color: var(--dark);
-        }
-
-        .service-content p {
-            margin-bottom: 1.5rem;
-        }
-
-        .tips {
-            background: linear-gradient(to right, var(--primary), var(--secondary));
-            color: var(--white);
-        }
-
-        .tips-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 2rem;
-        }
-
-        .tip-card {
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 2rem;
-            backdrop-filter: blur(10px);
-            transition: transform 0.3s ease;
-        }
-
-        .tip-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .tip-card h3 {
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .tip-card h3 i {
-            color: var(--accent);
-        }
-
-        .cta {
-            background: linear-gradient(to right, var(--primary), var(--secondary));
-            color: var(--white);
-            text-align: center;
-            padding: 5rem 0;
-        }
-
-        .cta h2 {
-            font-size: 2.5rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .cta p {
-            font-size: 1.2rem;
-            margin-bottom: 2rem;
-            max-width: 700px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .cta .btn {
-            background-color: var(--white);
-            color: var(--primary);
-        }
-
-        .cta .btn:hover {
-            background-color: var(--accent);
-            color: var(--white);
-        }
-
-        footer {
-            background-color: var(--dark);
-            color: var(--white);
-            padding: 3rem 0 1rem;
-        }
-
-        .footer-content {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 2rem;
-            margin-bottom: 2rem;
-        }
-
-        .footer-column h3 {
-            font-size: 1.3rem;
-            margin-bottom: 1.5rem;
-            position: relative;
-            padding-bottom: 10px;
-        }
-
-        .footer-column h3::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 40px;
-            height: 2px;
-            background-color: var(--accent);
-        }
-
-        .footer-column p {
-            margin-bottom: 1rem;
-        }
-
-        .footer-links {
-            list-style: none;
-        }
-
-        .footer-links li {
-            margin-bottom: 0.8rem;
-        }
-
-        .footer-links li a {
-            color: var(--light);
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-
-        .footer-links li a:hover {
-            color: var(--accent);
-            padding-left: 5px;
-        }
-
-        .social-links {
-            display: flex;
-            gap: 1rem;
-        }
-
-        .social-links a {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            color: var(--white);
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-
-        .social-links a:hover {
-            background-color: var(--accent);
-            transform: translateY(-5px);
-        }
-
-        .copyright {
-            text-align: center;
-            padding-top: 2rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .mobile-menu {
-            display: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-        }
-
-        @media (max-width: 992px) {
-            .about-content {
-                grid-template-columns: 1fr;
-            }
-            
-            .services-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .footer-content {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .stats {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .tips-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .hero h1 {
-                font-size: 2.5rem;
-            }
-            
-            .hero p {
-                font-size: 1.1rem;
-            }
-            
-            nav ul {
-                display: none;
-                position: absolute;
-                top: 100%;
-                left: 0;
-                width: 100%;
-                background-color: var(--primary);
-                flex-direction: column;
-                padding: 1rem 0;
-                text-align: center;
-                box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
-            }
-            
-            nav ul.active {
-                display: flex;
-            }
-            
-            nav ul li {
-                margin: 0;
-                padding: 0.8rem 0;
-            }
-            
-            .mobile-menu {
-                display: block;
-            }
-            
-            .services-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .footer-content {
-                grid-template-columns: 1fr;
-            }
-            
-            .stats {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Animation for stats counter */
-        .counter {
-            transition: all 0.5s ease;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Benefits of Go binaries · compiled power</title>
+  <meta name="description" content="Why writing binary files in Go (compiled executables) simplifies deployment, boosts performance, and fits modern cloud workflows.">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #f1f4f8;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      line-height: 1.6;
+      color: #1e293b;
+      padding: 2rem 1.5rem;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: rgba(255,255,255,0.5);
+      backdrop-filter: blur(2px);
+      border-radius: 2rem;
+      padding: 2.5rem 2rem;
+      box-shadow: 0 20px 35px -8px rgba(0,20,30,0.15);
+    }
+
+    h1 {
+      font-size: 2.6rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(145deg, #0B2B4F, #1E4A6F);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.6rem;
+      line-height: 1.2;
+    }
+
+    .subhead {
+      font-size: 1.3rem;
+      color: #2c3e50;
+      border-left: 5px solid #3b9eff;
+      padding-left: 1.4rem;
+      margin-bottom: 2.5rem;
+      font-weight: 350;
+      background: #e9f0fa60;
+      border-radius: 0 1rem 1rem 0;
+      padding: 0.8rem 1.4rem;
+    }
+
+    .intro-note {
+      background: #1e2b39;
+      color: #e0edf9;
+      padding: 1.3rem 2rem;
+      border-radius: 2rem;
+      margin-bottom: 3rem;
+      font-size: 1.1rem;
+      border-left: 6px solid #64b5f6;
+      box-shadow: 0 4px 10px rgba(0,35,50,0.2);
+    }
+
+    .intro-note strong {
+      color: #ffdb8e;
+      font-weight: 600;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      margin: 3rem 0 2rem;
+    }
+
+    .card {
+      background: #ffffffdd;
+      backdrop-filter: blur(4px);
+      background: white;
+      border-radius: 1.8rem;
+      padding: 1.8rem 1.5rem;
+      box-shadow: 0 15px 30px -12px #1e293b40;
+      transition: transform 0.1s ease, box-shadow 0.2s;
+      border: 1px solid #ffffff70;
+    }
+
+    .card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 25px 35px -12px #1e3f5f70;
+    }
+
+    .card-icon {
+      font-size: 2.2rem;
+      margin-bottom: 1rem;
+      line-height: 1;
+    }
+
+    .card h3 {
+      font-size: 1.6rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      color: #0b2b4f;
+      border-bottom: 2px solid #b2d9ff;
+      padding-bottom: 0.3rem;
+      display: inline-block;
+    }
+
+    .card p {
+      color: #1f3a4b;
+      font-size: 1rem;
+      margin-top: 0.75rem;
+    }
+
+    .code-demo {
+      background: #0e1d2b;
+      border-radius: 1.8rem;
+      padding: 2rem 2rem 1.8rem;
+      margin: 3rem 0 1rem;
+      color: #d4e6f5;
+      box-shadow: inset 0 0 0 1px #3f5568, 0 20px 30px -10px #0b1a28;
+    }
+
+    .code-demo h2 {
+      color: #ffda9e;
+      font-size: 1.8rem;
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .code-demo pre {
+      background: #11212f;
+      padding: 1.5rem;
+      border-radius: 1.2rem;
+      overflow-x: auto;
+      font-size: 0.95rem;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+      border: 1px solid #2b4b6e;
+      color: #c9e6ff;
+      margin: 1.2rem 0;
+      line-height: 1.5;
+      tab-size: 4;
+    }
+
+    .code-demo .cmd {
+      color: #78e0ff;
+    }
+
+    .code-demo .comment {
+      color: #a0b8cc;
+    }
+
+    .flex-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem 2rem;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 1.8rem;
+    }
+
+    .badge {
+      background: #2b4d6a;
+      border-radius: 40px;
+      padding: 0.5rem 1.2rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #ebf5ff;
+    }
+
+    hr {
+      border: none;
+      height: 2px;
+      background: linear-gradient(90deg, #a1c6ff, #ffffff10, #a1c6ff);
+      margin: 3rem 0 1rem;
+    }
+
+    footer {
+      text-align: center;
+      color: #4a627a;
+      font-size: 0.95rem;
+      margin-top: 2rem;
+    }
+
+    a {
+      color: #1f6fb0;
+      text-decoration: none;
+    }
+
+    /* small tweaks */
+    @media (max-width: 600px) {
+      .container { padding: 1.5rem; }
+      h1 { font-size: 2rem; }
+    }
+  </style>
 </head>
 <body>
-    <!-- Header -->
-    <header>
-        <div class="container nav-container">
-            <div class="logo">
-                <i class="fas fa-heartbeat"></i>
-                <span>Health & Wellness</span>
-            </div>
-            <nav>
-                <div class="mobile-menu">
-                    <i class="fas fa-bars"></i>
-                </div>
-                <ul>
-                    <li><a href="#home">Home</a></li>
-                    <li><a href="#about">About</a></li>
-                    <li><a href="#services">Services</a></li>
-                    <li><a href="#tips">Health Tips</a></li>
-                    <li><a href="#contact">Contact</a></li>
-                </ul>
-            </nav>
-        </div>
-    </header>
+<div class="container">
+  <h1>⚡ Writing binary files in Go</h1>
+  <div class="subhead">Why compiled Go binaries redefine simplicity, speed, and deployment</div>
 
-    <!-- Hero Section -->
-    <section class="hero" id="home">
-        <div class="container hero-content">
-            <h1>Your Journey to Better Health Starts Here</h1>
-            <p>Discover personalized wellness solutions and expert guidance for a healthier, happier life.</p>
-            <a href="#services" class="btn">Explore Our Services</a>
-        </div>
-    </section>
+  <!-- clarifying note – because "binary files" can be ambiguous -->
+  <div class="intro-note">
+    <strong>📌 Clarification:</strong> In the Go ecosystem, “writing binary files” usually refers to compiling source code into standalone executable binaries.  
+    (Go also offers superb support for reading/writing binary data formats with <code>encoding/binary</code>, but this page focuses on the power of <strong>compiled Go binaries</strong> — the files you run directly on any machine.)
+  </div>
 
-    <!-- About Section -->
-    <section id="about">
-        <div class="container">
-            <div class="section-title">
-                <h2>About Health & Wellness</h2>
-                <p>We are dedicated to helping you achieve optimal health through personalized care and evidence-based practices.</p>
-            </div>
-            <div class="about-content">
-                <div class="about-img">
-                    <img src="https://images.unsplash.com/photo-1559757148-5c350d0d3c56?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80" alt="Healthcare professionals">
-                </div>
-                <div class="about-text">
-                    <h3>Our Mission</h3>
-                    <p>Health & Wellness is committed to empowering individuals to take control of their health through comprehensive wellness programs, expert guidance, and community support.</p>
-                    <p>Founded in 2015, we've helped thousands of people improve their physical and mental wellbeing through our innovative approach to healthcare.</p>
-                    <p>Our team of certified professionals includes nutritionists, fitness experts, mental health counselors, and wellness coaches dedicated to your success.</p>
-                    <a href="#" class="btn">Learn More</a>
-                </div>
-            </div>
-            <div class="stats">
-                <div class="stat-item">
-                    <i class="fas fa-user-md"></i>
-                    <h3 class="counter" data-target="50">0</h3>
-                    <p>Certified Experts</p>
-                </div>
-                <div class="stat-item">
-                    <i class="fas fa-users"></i>
-                    <h3 class="counter" data-target="10000">0</h3>
-                    <p>Happy Clients</p>
-                </div>
-                <div class="stat-item">
-                    <i class="fas fa-clipboard-check"></i>
-                    <h3 class="counter" data-target="95">0</h3>
-                    <p>Success Rate</p>
-                </div>
-                <div class="stat-item">
-                    <i class="fas fa-award"></i>
-                    <h3 class="counter" data-target="15">0</h3>
-                    <p>Years Experience</p>
-                </div>
-            </div>
-        </div>
-    </section>
+  <!-- benefits grid – 7 core advantages -->
+  <div class="grid">
+    <!-- card 1 -->
+    <div class="card">
+      <div class="card-icon">📦</div>
+      <h3>Self‑contained executables</h3>
+      <p>Go compiles everything — including the runtime and all dependencies — into a <strong>single binary</strong>. No external interpreters, no virtual machines, no DLL hell. Just copy and run.</p>
+    </div>
+    <!-- card 2 -->
+    <div class="card">
+      <div class="card-icon">🌍</div>
+      <h3>Cross‑platform from one machine</h3>
+      <p>Set <code>GOOS</code> and <code>GOARCH</code> and build for Linux, Windows, macOS, ARM, or even WASM. Deliver binaries for every environment without leaving your editor.</p>
+    </div>
+    <!-- card 3 -->
+    <div class="card">
+      <div class="card-icon">⚡</div>
+      <h3>Native performance</h3>
+      <p>Go produces statically compiled machine code. Its speed rivals C/C++ — perfect for network services, APIs, databases, and CPU‑bound tools.</p>
+    </div>
+    <!-- card 4 -->
+    <div class="card">
+      <div class="card-icon">🧵</div>
+      <h3>Lightweight concurrency</h3>
+      <p>Goroutines are baked into the binary. The scheduler multiplexes them onto OS threads efficiently, letting you handle thousands of tasks with minimal memory.</p>
+    </div>
+    <!-- card 5 -->
+    <div class="card">
+      <div class="card-icon">🐇</div>
+      <h3>Blazing fast compilation</h3>
+      <p>Even large Go codebases compile in seconds. Rapid feedback loops make development and CI/CD pipelines a joy.</p>
+    </div>
+    <!-- card 6 -->
+    <div class="card">
+      <div class="card-icon">🐳</div>
+      <h3>Ideal for containers</h3>
+      <p>Go binaries run in <code>scratch</code> or distroless images. A tiny footprint (often <5 MB after stripping) reduces attack surface and speeds up deployment.</p>
+    </div>
+    <!-- card 7 -->
+    <div class="card">
+      <div class="card-icon">🔒</div>
+      <h3>Static & reproducible</h3>
+      <p>All code is linked into one binary, simplifying version pinning and security scans. Use <code>-ldflags="-s -w"</code> to strip debug info and further shrink binaries.</p>
+    </div>
+  </div>
 
-    <!-- Services Section -->
-    <section class="services" id="services">
-        <div class="container">
-            <div class="section-title">
-                <h2>Our Services</h2>
-                <p>Comprehensive health and wellness services tailored to your unique needs and goals.</p>
-            </div>
-            <div class="services-grid">
-                <div class="service-card">
-                    <div class="service-img">
-                        <img src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80" alt="Nutrition Counseling">
-                    </div>
-                    <div class="service-content">
-                        <h3>Nutrition Counseling</h3>
-                        <p>Personalized nutrition plans designed to help you achieve your health goals, manage weight, and improve overall wellness.</p>
-                        <a href="#" class="btn">Learn More</a>
-                    </div>
-                </div>
-                <div class="service-card">
-                    <div class="service-img">
-                        <img src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80" alt="Fitness Training">
-                    </div>
-                    <div class="service-content">
-                        <h3>Fitness Training</h3>
-                        <p>Customized workout programs for all fitness levels, from beginners to advanced athletes.</p>
-                        <a href="#" class="btn">Learn More</a>
-                    </div>
-                </div>
-                <div class="service-card">
-                    <div class="service-img">
-                        <img src="https://images.unsplash.com/photo-1591348278863-a8fb3887e2aa?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80" alt="Mental Wellness">
-                    </div>
-                    <div class="service-content">
-                        <h3>Mental Wellness</h3>
-                        <p>Counseling and mindfulness practices to reduce stress, improve mental clarity, and enhance emotional wellbeing.</p>
-                        <a href="#" class="btn">Learn More</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+  <!-- quick demo: building a tiny binary -->
+  <div class="code-demo">
+    <h2>🔨 See it in action: from .go to binary</h2>
+    <p style="margin-bottom: 1rem; color: #b6d3f0;">A minimal Go program compiles into a standalone executable, ready to run on any compatible system — no Go installation required.</p>
+    <pre>
+<span class="comment">// hello.go</span>
+<span style="color:#bae67e;">package main</span>
 
-    <!-- Health Tips Section -->
-    <section class="tips" id="tips">
-        <div class="container">
-            <div class="section-title">
-                <h2>Health Tips</h2>
-                <p>Practical advice to help you maintain a healthy lifestyle.</p>
-            </div>
-            <div class="tips-grid">
-                <div class="tip-card">
-                    <h3><i class="fas fa-apple-alt"></i> Balanced Nutrition</h3>
-                    <p>Focus on a diet rich in fruits, vegetables, lean proteins, and whole grains. Limit processed foods and added sugars for optimal health.</p>
-                </div>
-                <div class="tip-card">
-                    <h3><i class="fas fa-running"></i> Regular Exercise</h3>
-                    <p>Aim for at least 150 minutes of moderate-intensity exercise per week to maintain cardiovascular health and muscle strength.</p>
-                </div>
-                <div class="tip-card">
-                    <h3><i class="fas fa-bed"></i> Quality Sleep</h3>
-                    <p>Prioritize 7-9 hours of quality sleep each night to support physical recovery, mental clarity, and overall wellbeing.</p>
-                </div>
-                <div class="tip-card">
-                    <h3><i class="fas fa-tint"></i> Stay Hydrated</h3>
-                    <p>Drink plenty of water throughout the day to maintain proper bodily functions, energy levels, and skin health.</p>
-                </div>
-            </div>
-        </div>
-    </section>
+<span style="color:#d5b5ff;">import</span> <span style="color:#b3e572;">"fmt"</span>
 
-    <!-- CTA Section -->
-    <section class="cta" id="get-started">
-        <div class="container">
-            <h2>Start Your Wellness Journey Today</h2>
-            <p>Take the first step towards a healthier, happier you with our personalized health and wellness programs.</p>
-            <a href="#contact" class="btn">Get Started</a>
-        </div>
-    </section>
+<span style="color:#ffcc66;">func</span> <span style="color:#80cbc4;">main</span>() {
+    fmt.Println(<span style="color:#d9bd70;">"Hello from a self-contained binary!"</span>)
+}</pre>
+    <div class="flex-row">
+      <div>
+        <p><span class="cmd">$ go build -o hello hello.go</span> &nbsp; <span class="comment"># produces ~2 MB binary</span></p>
+        <p><span class="cmd">$ ./hello</span><br>
+        <span style="color:#b3f0a0;">Hello from a self-contained binary!</span></p>
+        <p><span class="cmd">$ ls -lh hello</span><br>
+        <span style="color:#b3f0a0;">-rwxr-xr-x  2.0M Mar  2 10:27 hello*</span></p>
+      </div>
+      <div class="badge">
+        ⚡ no runtime, no VM, pure binary
+      </div>
+    </div>
+    <p style="margin-top: 1.2rem; color: #b6d3f0; font-size: 0.95rem;">🔹 Strip symbols: <code>go build -ldflags="-s -w"</code> → binary size often below 1.5 MB. Can be compressed further with UPX.</p>
+  </div>
 
-    <!-- Footer -->
-    <footer id="contact">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-column">
-                    <h3>Health & Wellness</h3>
-                    <p>Your partner in achieving optimal health and wellbeing through personalized care and evidence-based practices.</p>
-                    <div class="social-links">
-                        <a href="#"><i class="fab fa-facebook-f"></i></a>
-                        <a href="#"><i class="fab fa-twitter"></i></a>
-                        <a href="#"><i class="fab fa-instagram"></i></a>
-                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
-                    </div>
-                </div>
-                <div class="footer-column">
-                    <h3>Quick Links</h3>
-                    <ul class="footer-links">
-                        <li><a href="#home">Home</a></li>
-                        <li><a href="#about">About Us</a></li>
-                        <li><a href="#services">Services</a></li>
-                        <li><a href="#tips">Health Tips</a></li>
-                        <li><a href="#contact">Contact</a></li>
-                    </ul>
-                </div>
-                <div class="footer-column">
-                    <h3>Our Services</h3>
-                    <ul class="footer-links">
-                        <li><a href="#">Nutrition Counseling</a></li>
-                        <li><a href="#">Fitness Training</a></li>
-                        <li><a href="#">Mental Wellness</a></li>
-                        <li><a href="#">Weight Management</a></li>
-                        <li><a href="#">Health Screening</a></li>
-                    </ul>
-                </div>
-                <div class="footer-column">
-                    <h3>Contact Us</h3>
-                    <p><i class="fas fa-map-marker-alt"></i> 123 Wellness Street, Health City</p>
-                    <p><i class="fas fa-phone"></i> +1 (555) 123-4567</p>
-                    <p><i class="fas fa-envelope"></i> info@healthwellness.com</p>
-                </div>
-            </div>
-            <div class="copyright">
-                <p>&copy; 2023 Health & Wellness. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
+  <!-- summary / real-world perspective -->
+  <hr>
+  <div style="display: flex; flex-wrap: wrap; gap: 2rem; justify-content: space-between; align-items: center; margin: 2rem 0 1rem;">
+    <div style="max-width: 650px;">
+      <h2 style="font-size: 2rem; font-weight: 550; color: #0b2b4f; margin-bottom: 1rem;">🚀 Why teams choose Go binaries</h2>
+      <p style="font-size: 1.1rem;">From Docker, Kubernetes, and Terraform to small CLI tools: the ability to ship a single binary changes the game. No dependency hell, no version conflicts — just a file that runs. Combined with cross‑compilation, it’s the closest thing to “write once, run anywhere” without a heavy runtime.</p>
+    </div>
+    <div style="background: #d3e3fd; padding: 1rem 2rem; border-radius: 100px; font-weight: 600; color: #002856;">
+      ⭐ used by Google, DigitalOcean, Cloudflare…
+    </div>
+  </div>
 
-    <script>
-        // Mobile Menu Toggle
-        document.querySelector('.mobile-menu').addEventListener('click', function() {
-            document.querySelector('nav ul').classList.toggle('active');
-        });
+  <!-- note on binary data formats (to cover alternative interpretation) -->
+  <div style="background: #e3eefb; border-radius: 1.5rem; padding: 1.5rem 2rem; margin-top: 2.5rem; border-left: 6px solid #3b9eff;">
+    <p style="font-weight: 500; color: #023b66; display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap;">
+      <span style="font-size: 2rem;">📁</span> 
+      <span><strong>Also great for binary data files:</strong> Go’s standard library (<code>encoding/binary</code>, <code>gob</code>, <code>os</code>) makes reading/writing structured binary formats simple, efficient, and cross-platform. But that’s a story for another page.</span>
+    </p>
+  </div>
 
-        // Counter Animation
-        function animateCounters() {
-            const counters = document.querySelectorAll('.counter');
-            const speed = 200; // The lower the slower
-            
-            counters.forEach(counter => {
-                const target = +counter.getAttribute('data-target');
-                const count = +counter.innerText;
-                
-                const inc = target / speed;
-                
-                if(count < target) {
-                    counter.innerText = Math.ceil(count + inc);
-                    setTimeout(animateCounters, 1);
-                } else {
-                    counter.innerText = target;
-                }
-            });
-        }
-
-        // Initialize counters when page loads
-        window.addEventListener('load', animateCounters);
-
-        // Smooth scrolling for navigation links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function(e) {
-                e.preventDefault();
-                
-                const targetId = this.getAttribute('href');
-                if(targetId === '#') return;
-                
-                const targetElement = document.querySelector(targetId);
-                if(targetElement) {
-                    window.scrollTo({
-                        top: targetElement.offsetTop - 80,
-                        behavior: 'smooth'
-                    });
-                    
-                    document.querySelector('nav ul').classList.remove('active');
-                }
-            });
-        });
-    </script>
+  <footer>
+    <p>✨ The power of Go — one binary to rule them all. · <a href="#">#golang</a> <a href="#">#binary</a> <a href="#">#devops</a></p>
+    <p style="margin-top: 0.5rem; opacity: 0.7;">© 2025 · independent overview</p>
+  </footer>
+</div>
 </body>
 </html>
