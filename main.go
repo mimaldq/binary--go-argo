@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/rand"
+	"embed"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -23,6 +24,9 @@ import (
 	"syscall"
 	"time"
 )
+
+//go:embed index.html
+var embeddedFiles embed.FS
 
 // Config 配置结构体
 type Config struct {
@@ -626,14 +630,15 @@ func startHTTPServer() {
 		w.Write([]byte(encoded))
 	})
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		indexPaths := []string{"index.html", "/app/index.html", "./index.html"}
-		for _, indexPath := range indexPaths {
-			if _, err := os.Stat(indexPath); err == nil {
-				http.ServeFile(w, r, indexPath)
-				return
-			}
+		// 从嵌入的文件系统读取 index.html
+		data, err := embeddedFiles.ReadFile("index.html")
+		if err != nil {
+			// 如果读取失败（理论上不会），回退到简单消息
+			w.Write([]byte("Hello world!"))
+			return
 		}
-		w.Write([]byte("Hello world!"))
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(data)
 	})
 
 	log.Printf("HTTP服务运行在内部端口: %s", config.Port)
